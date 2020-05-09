@@ -364,7 +364,7 @@ def get_radius_of_curvature(x_pixels):
 I implemented this step under function `original_lane_lines()` in `main.py` in the function .  Here is an example of my result on a test image:
 ![original_lane_line_image](https://github.com/anjanarajam/SELF-DRIVING-CAR-ADVANCED-LANE-FINDING/tree/master/output_images/original_lane_line_image.png)
 
-=--
+---
 
 ### Pipeline (video)
 
