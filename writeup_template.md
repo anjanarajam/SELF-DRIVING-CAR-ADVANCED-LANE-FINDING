@@ -361,11 +361,10 @@ def get_radius_of_curvature(x_pixels):
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented this step under function `original_lane_lines()` in `main.py` in the function .  Here is an example of my result on a test image:
+![original_lane_line_image](https://github.com/anjanarajam/SELF-DRIVING-CAR-ADVANCED-LANE-FINDING/tree/master/output_images/original_lane_line_image.png)
 
-![alt text][image6]
-
----
+=--
 
 ### Pipeline (video)
 
