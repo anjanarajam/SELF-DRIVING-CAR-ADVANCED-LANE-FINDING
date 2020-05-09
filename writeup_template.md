@@ -318,8 +318,46 @@ def find_lane_line_from_polynomial(warped_image):
 ![lane_line_image](https://github.com/anjanarajam/SELF-DRIVING-CAR-ADVANCED-LANE-FINDING/tree/master/output_images/lane_line.png)
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+The radius of curvature is calculated using the equation, which is given in the following link <https://www.intmath.com/applications-differentiation/8-radius-curvature.php>. 
 
-I did this in lines # through # in my code in `my_other_file.py`
+The y values increase from top to bottom of the image. Hence if the curvature has to be calculated the y values at the bottom of the image is considered, which will be ymax. In the real world space, the real dimension of the lane is taken as inputs. According to the U.S. regulations, the minimum lane width should be 12 feet or 3.7 meters and lets take the length of the lane as 30 meters. Since our camera image is in pixels, I convert the pixels in meters as follows:
+ym_per_pix = 30/720 # meters per pixel in y dimension
+xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
+The coefficients are derived using np.polyfit taking image y value and the x pixel values. Now that we have the coeffiecients, ymax value, the left and the right curvature is calculated using the formula.
+
+I did this in lines 3 through 30 in my code in `radius_of_curvature.py`
+
+```python
+def get_radius_of_curvature(x_pixels):
+    # Define conversions in x and y from pixels space to meters
+    # meters per pixel in y dimension
+    ymeters_per_pixel = 30/720 
+    # meters per pixel in x dimension
+    xmeters_per_pixel = 3.7/700 
+    
+    # Get x, y values from image
+    y_image_values = np.linspace(0, 719, num=720)
+    
+    # Define y-value where we want radius of curvature
+    # We'll choose the maximum y-value, corresponding to the bottom of the image since 
+    # we need curvature closest to the vehicle
+    y_max = np.max(y_image_values)
+    
+    # Get the left and right pixels
+    left_x_pixel = x_pixels[0]
+    right_x_pixel = x_pixels[1]
+    
+    # Get the left and right coefficients
+    left_x_coeff = np.polyfit(y_image_values * ymeters_per_pixel, left_x_pixel * xmeters_per_pixel, 2)
+    right_x_coeff = np.polyfit(y_image_values * ymeters_per_pixel, right_x_pixel * xmeters_per_pixel, 2)
+       
+    # Calculate radius of curvature 
+    left_curvature = ((1 + (2* left_x_coeff[0] * y_max * ymeters_per_pixel + left_x_coeff[1]) ** 2) ** 1.5) / np.absolute(2 *                                    left_x_coeff[0])
+    right_curvature = ((1 + (2 * right_x_coeff[0] * y_max * ymeters_per_pixel + right_x_coeff[1]) ** 2) ** 1.5) / np.absolute(2 *                                 right_x_coeff[0])
+    
+    return (left_curvature, right_curvature)
+ ```
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
