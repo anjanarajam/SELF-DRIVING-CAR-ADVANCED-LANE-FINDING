@@ -190,9 +190,6 @@ def find_lane_line_pixels(warped_image):
     # Get the sum across the vertical line or the height of the image or sum of the columns
     histogram = np.sum(lower_half, axis=0)
 
-    # Plot the histogram
-    plt.plot(histogram)
-
     # Create an output image to draw on and visualize the result
     output_image = np.dstack((warped_image, warped_image, warped_image)) * 255
     
@@ -308,11 +305,74 @@ def find_lane_line_from_polynomial(warped_image):
     output_image[left_laneline_y_pixels, left_laneline_x_pixels] = [255, 0, 0]
     output_image[right_laneline_y_pixels, right_laneline_x_pixels] = [255, 0, 0]
 
-    # Plots the left and right x and y values of the lane lines
-    plt.plot(left_laneline_x_values, image_y_values, color='yellow')
-    plt.plot(right_laneline_x_values, image_y_values, color='yellow')
+    return output_image, (left_laneline_coeff, right_laneline_coeff), (left_laneline_x_values, right_laneline_x_values)
 
-    return output_image, (left_laneline_coeff, right_laneline_coeff)
+def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
+    # width of the margin around the previous polynomial to search
+    margin = 100
+    
+    # Get the left and right lane coefficients from the previous line
+    prev_left_laneline_coeff = prev_laneline_coeff[0]
+    prev_right_laneline_coeff = prev_laneline_coeff[1]
+    
+    # Identify the x and y positions of all nonzero (i.e. activated) pixels in the image
+    # non zero returns non zero positions in row and column. 
+    non_zero_tuple = warped_image.nonzero()
+    # nonzero[0] is the non zero postions in col(y positions)
+    non_zero_y = np.array(non_zero_tuple[0])
+    # nonzero[0] is the non zero postions in row (x positions)
+    non_zero_x = np.array(non_zero_tuple[1])
+    
+    # Find the x values from the polynomials based the activated y pixels of the image taking the
+    # previous line coefficients. This is because, the first time activated pixels were not known.
+    # We had to form a window to find the pixels and the coefficients.
+    left_laneline_nonzero_x = prev_left_laneline_coeff[0] * non_zero_y ** 2 + prev_left_laneline_coeff[1] * non_zero_y +                                                 prev_left_laneline_coeff[2]
+    right_laneline_nonzero_x = prev_right_laneline_coeff[0] * non_zero_y ** 2 + prev_right_laneline_coeff[1] * non_zero_y +                                               prev_right_laneline_coeff[2]
+    
+    # Find the pixels of the left and right lane pixels within the margin with the x values
+    left_lane_indices = ((non_zero_x > (left_laneline_nonzero_x - margin)) & (non_zero_x < (left_laneline_nonzero_x + margin)))
+    right_lane_indices = ((non_zero_x > (right_laneline_nonzero_x - margin)) & (non_zero_x < (right_laneline_nonzero_x + margin)))
+    
+    # Extract new left and right line pixel positions
+    left_laneline_x_pixels_new = non_zero_x[left_lane_indices]
+    left_laneline_y_pixels_new = non_zero_y[left_lane_indices] 
+    right_laneline_x_pixels_new = non_zero_x[right_lane_indices]
+    right_laneline_y_pixels_new = non_zero_y[right_lane_indices]
+    
+    # Now find the new coefficients based on the new left and right lane pixels found      
+    left_laneline_coeff_new = np.polyfit(left_laneline_y_pixels_new, left_laneline_x_pixels_new, 2)
+    right_laneline_coeff_new = np.polyfit(right_laneline_y_pixels_new, right_laneline_x_pixels_new, 2)
+    
+    # Generate x and y values for plotting
+    image_y_values = np.linspace(0, warped_image.shape[0]-1, warped_image.shape[0])
+    
+    # Calculate left and right values of x using image_y_values, left and right coefficients in the polynomial equation
+    left_laneline_x_values_new = left_laneline_coeff_new[0] * image_y_values ** 2 + left_laneline_coeff_new[1] * image_y_values +                                            left_laneline_coeff_new[2]
+    right_laneline_x_values_new = right_laneline_coeff_new[0]* image_y_values ** 2 + right_laneline_coeff_new[1] * image_y_values +                                           right_laneline_coeff_new[2]
+
+    # Create an image to draw on and an image to show the selection window
+    output_image = np.dstack((warped_image, warped_image, warped_image)) * 255
+    window_image = np.zeros_like(output_image)
+    
+    # Color the left and right line pixels
+    output_image[left_laneline_y_pixels_new, left_laneline_x_pixels_new] = [255, 0, 0]
+    output_image[right_laneline_y_pixels_new, right_laneline_x_pixels_new] = [0, 0, 255]
+                 
+    # Generate a polygon to illustrate the search window area
+    # And recast the x and y points into usable format for cv2.fillPoly()
+    left_line_window1 = np.array([np.transpose(np.vstack([left_laneline_x_values_new - margin, image_y_values]))])
+    left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_laneline_x_values_new + margin, image_y_values])))])
+    left_line_pts = np.hstack((left_line_window1, left_line_window2))
+    right_line_window1 = np.array([np.transpose(np.vstack([right_laneline_x_values_new - margin, image_y_values]))])
+    right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_laneline_x_values_new + margin, image_y_values])))])
+    right_line_pts = np.hstack((right_line_window1, right_line_window2))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(window_image, np.int_([left_line_pts]), (0,255, 0))
+    cv2.fillPoly(window_image, np.int_([right_line_pts]), (0,255, 0))
+    result = cv2.addWeighted(output_image, 1, window_image, 0.3, 0)
+    
+    return result, (left_laneline_x_values_new, right_laneline_x_values_new)
 ```
 ![sliding_window_image](https://github.com/anjanarajam/SELF-DRIVING-CAR-ADVANCED-LANE-FINDING/tree/master/output_images/sliding_window.png)
 ![lane_line_image](https://github.com/anjanarajam/SELF-DRIVING-CAR-ADVANCED-LANE-FINDING/tree/master/output_images/lane_line.png)
