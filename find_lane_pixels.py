@@ -13,9 +13,6 @@ def find_lane_line_pixels(warped_image):
     # Get the sum across the vertical line or the height of the image or sum of the columns
     histogram = np.sum(lower_half, axis=0)
 
-    # Plot the histogram
-    plt.plot(histogram)
-
     # Create an output image to draw on and visualize the result
     output_image = np.dstack((warped_image, warped_image, warped_image)) * 255
     
@@ -131,11 +128,7 @@ def find_lane_line_from_polynomial(warped_image):
     output_image[left_laneline_y_pixels, left_laneline_x_pixels] = [255, 0, 0]
     output_image[right_laneline_y_pixels, right_laneline_x_pixels] = [255, 0, 0]
 
-    # Plots the left and right x and y values of the lane lines
-    plt.plot(left_laneline_x_values, image_y_values, color='yellow')
-    plt.plot(right_laneline_x_values, image_y_values, color='yellow')
-
-    return output_image, (left_laneline_coeff, right_laneline_coeff)
+    return output_image, (left_laneline_coeff, right_laneline_coeff), (left_laneline_x_values, right_laneline_x_values)
 
 def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
     # width of the margin around the previous polynomial to search
@@ -202,10 +195,6 @@ def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
     cv2.fillPoly(window_image, np.int_([right_line_pts]), (0,255, 0))
     result = cv2.addWeighted(output_image, 1, window_image, 0.3, 0)
     
-    # Plot the polynomial lines onto the image
-    plt.plot(left_laneline_x_values_new, image_y_values, color='yellow')
-    plt.plot(right_laneline_x_values_new, image_y_values, color='yellow')
-
     return result, (left_laneline_x_values_new, right_laneline_x_values_new)
 
 
