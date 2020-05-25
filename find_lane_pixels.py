@@ -103,7 +103,8 @@ def find_lane_line_pixels(warped_image):
 
 def find_lane_line_from_polynomial(warped_image):
     # Find our lane pixels first
-    left_laneline_x_pixels, left_laneline_y_pixels, right_laneline_x_pixels, right_laneline_y_pixels, output_image =                                                                                                        find_lane_line_pixels(warped_image)
+    left_laneline_x_pixels, left_laneline_y_pixels, right_laneline_x_pixels, right_laneline_y_pixels, output_image = 
+																			find_lane_line_pixels(warped_image)
 
     # Find the coefficients of the polynomial formed by polyfit of the left and right lane line pixels 
     # to find the left and the right lane lines
@@ -115,8 +116,8 @@ def find_lane_line_from_polynomial(warped_image):
     
     try:
         # Find the x values of the lane lines from the polynomials
-        left_laneline_x_values = left_laneline_coeff[0] * image_y_values ** 2 + left_laneline_coeff[1] * image_y_values +                                                left_laneline_coeff[2]
-        right_laneline_x_values = right_laneline_coeff[0] * image_y_values ** 2 + right_laneline_coeff[1] * image_y_values +                                             right_laneline_coeff[2]
+        left_laneline_x_values = left_laneline_coeff[0] * image_y_values ** 2 + left_laneline_coeff[1] * image_y_values + left_laneline_coeff[2]
+        right_laneline_x_values = right_laneline_coeff[0] * image_y_values ** 2 + right_laneline_coeff[1] * image_y_values + right_laneline_coeff[2]
     except TypeError:
         # Avoids an error if left and right coefficients are still none or incorrect
         print('The function failed to fit a line!')
