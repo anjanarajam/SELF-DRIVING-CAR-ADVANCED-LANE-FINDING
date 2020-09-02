@@ -3,10 +3,11 @@ import cv2
 import matplotlib.pyplot as plt
 
 def find_lane_line_pixels(warped_image):
-    # Plot a histogram where the binary activations occur across the image
+    ### Plot a histogram where the binary activations occur across the image
+    
     # Get the image height
     image_height = warped_image.shape[0]
-    # Get the pixel value lower half of the image(half of rows and the complete columns 
+    # Get the pixel value of the lower half of the image(half of rows and the complete columns 
     # where lane lines are most likely to be vertical
     lower_half = warped_image[image_height // 2:,:]
 
@@ -50,6 +51,9 @@ def find_lane_line_pixels(warped_image):
     left_lane_indices = []
     right_lane_indices = []
 
+    ### Find x and y non-zero pixels for every window, append it in the list, concatenate and then finally find the non zero x and y 
+    ### pixel values of the entire left and right line from the concatenation
+    
     # Iterate through the number of windows
     for window in range(nwindows):
         # Find the boundaries of our current window.         
@@ -67,14 +71,14 @@ def find_lane_line_pixels(warped_image):
         cv2.rectangle(output_image, (x_left_low, y_low), (x_left_high, y_high),(0, 0, 255), 3) 
         cv2.rectangle(output_image, (x_right_low, y_low),(x_right_high, y_high),(0, 0, 255), 3) 
         
-        # Identify the nonzero pixels in x and y within the window which means the pixels are highly activated which 
+        # Identify the nonzero pixels in x and y from each window which means the pixels are highly activated which 
         # will be mostly that of a lane     
         left_window_nonzero_indices = ((non_zero_y >= y_low) & (non_zero_y < y_high) & 
         (non_zero_x >= x_left_low) &  (non_zero_x < x_left_high)).nonzero()[0]
         right_window_nonzero_indices = ((non_zero_y >= y_low) & (non_zero_y < y_high) & 
         (non_zero_x >= x_right_low) &  (non_zero_x < x_right_high)).nonzero()[0]
         
-        # Append these indices to the lists
+        # Append nonzero pixels in x and y to the lists
         left_lane_indices.append(left_window_nonzero_indices)
         right_lane_indices.append(right_window_nonzero_indices)
         
@@ -84,7 +88,8 @@ def find_lane_line_pixels(warped_image):
         if len(right_window_nonzero_indices) > minpix:        
             current_right_x_pos = np.int(np.mean(non_zero_x[right_window_nonzero_indices]))
 
-    # Concatenate the arrays of indices (previously was a list of lists of pixels)
+    # Concatenate the arrays of indices. Concatenation helps in combining all
+    # the arrays so that we get the aggregate nonzero pixels in x and y for the entire left and right line
     try:
         left_lane_indices = np.concatenate(left_lane_indices)
         right_lane_indices = np.concatenate(right_lane_indices)
@@ -92,7 +97,7 @@ def find_lane_line_pixels(warped_image):
         # Avoids an error if the above is not implemented fully
         pass
 
-    # Extract left and right lane line pixel position within the window
+    # Extract left and right lane line pixel position separately from the entire left and the right lines
     left_laneline_x_pixels = non_zero_x[left_lane_indices]
     left_laneline_y_pixels = non_zero_y[left_lane_indices] 
     right_laneline_x_pixels = non_zero_x[right_lane_indices]
@@ -103,8 +108,7 @@ def find_lane_line_pixels(warped_image):
 
 def find_lane_line_from_polynomial(warped_image):
     # Find our lane pixels first
-    left_laneline_x_pixels, left_laneline_y_pixels, right_laneline_x_pixels, right_laneline_y_pixels, output_image = 
-																			find_lane_line_pixels(warped_image)
+    left_laneline_x_pixels, left_laneline_y_pixels, right_laneline_x_pixels, right_laneline_y_pixels, output_image =                                                                                                        find_lane_line_pixels(warped_image)
 
     # Find the coefficients of the polynomial formed by polyfit of the left and right lane line pixels 
     # to find the left and the right lane lines
@@ -116,8 +120,8 @@ def find_lane_line_from_polynomial(warped_image):
     
     try:
         # Find the x values of the lane lines from the polynomials
-        left_laneline_x_values = left_laneline_coeff[0] * image_y_values ** 2 + left_laneline_coeff[1] * image_y_values + left_laneline_coeff[2]
-        right_laneline_x_values = right_laneline_coeff[0] * image_y_values ** 2 + right_laneline_coeff[1] * image_y_values + right_laneline_coeff[2]
+        left_laneline_x_values = left_laneline_coeff[0] * image_y_values ** 2 + left_laneline_coeff[1] * image_y_values +                                                left_laneline_coeff[2]
+        right_laneline_x_values = right_laneline_coeff[0] * image_y_values ** 2 + right_laneline_coeff[1] * image_y_values +                                             right_laneline_coeff[2]
     except TypeError:
         # Avoids an error if left and right coefficients are still none or incorrect
         print('The function failed to fit a line!')
@@ -131,7 +135,7 @@ def find_lane_line_from_polynomial(warped_image):
 
     return output_image, (left_laneline_coeff, right_laneline_coeff), (left_laneline_x_values, right_laneline_x_values)
 
-def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
+def find_next_lane_line_from_prev_poly(prev_laneline_coeff, warped_image):
     # width of the margin around the previous polynomial to search
     margin = 100
     
@@ -149,7 +153,8 @@ def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
     
     # Find the x values from the polynomials based the activated y pixels of the image taking the
     # previous line coefficients. This is because, the first time activated pixels were not known.
-    # We had to form a window to find the pixels and the coefficients.
+    # We had to form window by window to find the pixels and the coefficients. Now we can straight away use coefficients of previous line
+    # and non zero y value of the image to find the new x and y value pixels of the new line
     left_laneline_nonzero_x = prev_left_laneline_coeff[0] * non_zero_y ** 2 + prev_left_laneline_coeff[1] * non_zero_y +                                                 prev_left_laneline_coeff[2]
     right_laneline_nonzero_x = prev_right_laneline_coeff[0] * non_zero_y ** 2 + prev_right_laneline_coeff[1] * non_zero_y +                                               prev_right_laneline_coeff[2]
     
@@ -196,7 +201,7 @@ def find_next_frame_lane_line(prev_laneline_coeff, warped_image):
     cv2.fillPoly(window_image, np.int_([right_line_pts]), (0,255, 0))
     result = cv2.addWeighted(output_image, 1, window_image, 0.3, 0)
     
-    return result, (left_laneline_x_values_new, right_laneline_x_values_new)
+    return result, (left_laneline_coeff_new, right_laneline_coeff_new), (left_laneline_x_values_new, right_laneline_x_values_new)
 
 
    
